@@ -19,7 +19,7 @@
 
 #include <imgui.h>
 
-inline constexpr const char* kAutoMyAimVersion    = "1.0.0";
+inline constexpr const char* kAutoMyAimVersion    = "1.0.1";
 inline constexpr const char* kAutoMyAimMaintainer = "Omer Faruk ARPA";
 
 using AutoMyAimConfig::Settings;
@@ -190,7 +190,7 @@ private:
     bool  m_active = false;
     bool  m_toggled = false;
     bool  m_togglePrev = false;
-    bool  m_binding = false;
+    int*  m_bindTarget = nullptr;
 
     bool  m_hasTarget = false;
     AutoMyAim::Target m_curTarget;
@@ -209,7 +209,7 @@ private:
     }
 
     void PollToggle(bool foreground) {
-        if (m_binding) { m_togglePrev = false; return; }
+        if (m_bindTarget) { m_togglePrev = false; return; }
         const bool down = foreground && AutoMyAimInput::IsKeyDown(m_settings.toggleKey);
         if (down && !m_togglePrev) m_toggled = !m_toggled;
         m_togglePrev = down;
@@ -309,20 +309,20 @@ private:
 
     void DrawKeyBinder(const char* label, int& vk) {
         ImGui::PushID(label);
-        if (m_binding) {
+        if (m_bindTarget == &vk) {
             ImGui::Button("Press a key...  (Esc to cancel)", ImVec2(220.f, 0.f));
             if (AutoMyAimInput::IsKeyDown(VK_ESCAPE)) {
-                m_binding = false;
+                m_bindTarget = nullptr;
             } else {
                 for (int i = 4; i < 255; ++i) {
                     if (i == VK_RBUTTON) continue;
-                    if ((GetAsyncKeyState(i) & 0x8000) != 0) { vk = i; m_binding = false; break; }
+                    if ((GetAsyncKeyState(i) & 0x8000) != 0) { vk = i; m_bindTarget = nullptr; break; }
                 }
             }
         } else {
             char btn[64];
             std::snprintf(btn, sizeof(btn), "%s", VkName(vk).c_str());
-            if (ImGui::Button(btn, ImVec2(220.f, 0.f))) m_binding = true;
+            if (ImGui::Button(btn, ImVec2(220.f, 0.f))) m_bindTarget = &vk;
         }
         ImGui::SameLine();
         ImGui::TextUnformatted(label);

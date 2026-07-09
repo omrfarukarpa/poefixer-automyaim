@@ -1,6 +1,6 @@
 # AutoMyAim
 
-**v1.0.0**
+**v1.0.1**
 
 A PoeFixer plugin for **Path of Exile 2** that moves your cursor onto the best nearby
 monster so your skills aim where they should. Hold a key (or toggle it on) and it scans
