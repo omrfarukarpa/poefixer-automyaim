@@ -37,6 +37,8 @@ struct Settings {
     int  actionIntervalMs = 0; // 0 = every frame
 
     int  aimRange = 100;   // grid units: scan + weight falloff
+    bool skipUntargetable = true;
+    bool debugShowTargetBuffs = false;
 
     float distanceWeight = 1.0f;
     bool  rarityWeighting = true;
@@ -81,6 +83,8 @@ struct Settings {
             actionIntervalMs = std::clamp(j.value("action_interval_ms", actionIntervalMs),
                                           kActionIntervalMinMs, kActionIntervalMaxMs);
             aimRange = std::clamp(j.value("aim_range", aimRange), kAimRangeMin, kAimRangeMax);
+            skipUntargetable = j.value("skip_untargetable", skipUntargetable);
+            debugShowTargetBuffs = j.value("debug_show_target_buffs", debugShowTargetBuffs);
 
             distanceWeight = j.value("distance_weight", distanceWeight);
             rarityWeighting = j.value("rarity_weighting", rarityWeighting);
@@ -124,6 +128,8 @@ struct Settings {
             j["toggle_key"] = toggleKey;
             j["action_interval_ms"] = actionIntervalMs;
             j["aim_range"] = aimRange;
+            j["skip_untargetable"] = skipUntargetable;
+            j["debug_show_target_buffs"] = debugShowTargetBuffs;
             j["distance_weight"] = distanceWeight;
             j["rarity_weighting"] = rarityWeighting;
             j["w_normal"] = wNormal;

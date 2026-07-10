@@ -46,9 +46,6 @@ public:
             if (e.EntityType != PluginSDK::EntityType::Monster) return true;
             if (e.CurrentHP <= 0) return true;
             if (e.EntityState == PluginSDK::EntityState::MonsterFriendly) return true;
-            // Skip untargetable states: a hidden/invulnerable pinnacle boss is
-            // still a live Unique Monster and rarity weighting would pin the
-            // cursor to it while adds kill the player.
             if (e.EntityState == PluginSDK::EntityState::PinnacleBossHidden) return true;
             if (e.EntityState == PluginSDK::EntityState::Useless) return true;
             if (IsServerMod(e.Path)) return true;
@@ -57,6 +54,12 @@ public:
             const float dy = e.GridPositionY - py;
             const float dist = std::sqrt(dx * dx + dy * dy);
             if (dist > range) return true;
+
+            if (s.skipUntargetable && e.Components.HasTargetable()) {
+                const PluginSDK::Targetable tgt =
+                    ctx->Components.ReadTargetable(e.Components.Targetable);
+                if (tgt.Valid && (!tgt.IsTargetable || tgt.HiddenFromPlayer)) return true;
+            }
 
             if (s.useLineOfSight &&
                 !rc.HasLineOfSight(pxi, pyi, static_cast<int>(e.GridPositionX),
@@ -69,6 +72,7 @@ public:
             t.worldX = e.WorldX; t.worldY = e.WorldY; t.worldZ = e.WorldZ;
             t.distance = dist;
             t.rarity = e.Rarity;
+            t.buffsAddr = e.Components.Buffs;
             t.weight = Weight(s, e, dist, maxDist);
 
             float sx = 0.f, sy = 0.f;
