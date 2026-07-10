@@ -55,12 +55,6 @@ public:
             const float dist = std::sqrt(dx * dx + dy * dy);
             if (dist > range) return true;
 
-            if (s.skipUntargetable && e.Components.HasTargetable()) {
-                const PluginSDK::Targetable tgt =
-                    ctx->Components.ReadTargetable(e.Components.Targetable);
-                if (tgt.Valid && (!tgt.IsTargetable || tgt.HiddenFromPlayer)) return true;
-            }
-
             if (s.useLineOfSight &&
                 !rc.HasLineOfSight(pxi, pyi, static_cast<int>(e.GridPositionX),
                                    static_cast<int>(e.GridPositionY), s.losBlockBelow))
@@ -73,6 +67,7 @@ public:
             t.distance = dist;
             t.rarity = e.Rarity;
             t.buffsAddr = e.Components.Buffs;
+            t.targetableAddr = e.Components.Targetable;
             t.weight = Weight(s, e, dist, maxDist);
 
             float sx = 0.f, sy = 0.f;

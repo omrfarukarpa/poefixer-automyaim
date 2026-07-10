@@ -19,7 +19,7 @@
 
 #include <imgui.h>
 
-inline constexpr const char* kAutoMyAimVersion    = "1.0.3";
+inline constexpr const char* kAutoMyAimVersion    = "1.0.4";
 inline constexpr const char* kAutoMyAimMaintainer = "Omer Faruk ARPA";
 
 using AutoMyAimConfig::Settings;
@@ -106,14 +106,13 @@ public:
             dl->AddText(pos, m_active ? IM_COL32(240, 120, 120, 255) : IM_COL32(210, 210, 210, 255),
                         status);
 
-            if (m_settings.debugShowTargetBuffs && m_hasTarget && m_active && !m_targetBuffs.empty()) {
+            if (m_settings.debugShowTarget && m_hasTarget && m_active && !m_targetDebug.empty()) {
                 const ImVec2 bpos(14.f, 34.f + sz.y + 6.f);
-                const std::string line = "target buffs: " + m_targetBuffs;
-                const ImVec2 bsz = ImGui::CalcTextSize(line.c_str());
+                const ImVec2 bsz = ImGui::CalcTextSize(m_targetDebug.c_str());
                 dl->AddRectFilled(ImVec2(bpos.x - 4, bpos.y - 2),
                                   ImVec2(bpos.x + bsz.x + 4, bpos.y + bsz.y + 2),
                                   IM_COL32(0, 0, 0, 200), 3.f);
-                dl->AddText(bpos, IM_COL32(140, 220, 140, 255), line.c_str());
+                dl->AddText(bpos, IM_COL32(140, 220, 140, 255), m_targetDebug.c_str());
             }
         }
     }
@@ -139,8 +138,6 @@ public:
         ImGui::SeparatorText("Targeting");
         ImGui::SliderInt("Aim range", &m_settings.aimRange,
                          AutoMyAimConfig::kAimRangeMin, AutoMyAimConfig::kAimRangeMax);
-        ImGui::Checkbox("Skip untargetable monsters (Delirium phantoms, hidden bosses)",
-                        &m_settings.skipUntargetable);
         ImGui::Checkbox("Show range circle", &m_settings.showRangeCircle);
         ImGui::SameLine();
         ImGui::ColorEdit4("Circle color", m_settings.rangeColor,
@@ -196,13 +193,14 @@ public:
                           ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaBar);
 
         ImGui::SeparatorText("Debug");
-        ImGui::Checkbox("Show target's buffs (to identify invulnerable monsters)",
-                        &m_settings.debugShowTargetBuffs);
-        if (m_settings.debugShowTargetBuffs) {
-            ImGui::TextWrapped("Aim at the undying monster; its active buff names appear here "
-                               "and on the overlay. Send that name so it can be filtered.");
+        ImGui::Checkbox("Show target's targetable flags + buffs (diagnostics)",
+                        &m_settings.debugShowTarget);
+        if (m_settings.debugShowTarget) {
+            ImGui::TextWrapped("Aim at a normal monster, then at an invulnerable/undying one, "
+                               "and send me both readouts (the flags + buff names) so the right "
+                               "filter can be built.");
             ImGui::TextColored(ImVec4(0.55f, 0.85f, 0.55f, 1.f), "%s",
-                               m_targetBuffs.empty() ? "(no target / no buffs)" : m_targetBuffs.c_str());
+                               m_targetDebug.empty() ? "(no target)" : m_targetDebug.c_str());
         }
     }
 
@@ -224,7 +222,7 @@ private:
     bool  m_hasTarget = false;
     AutoMyAim::Target m_curTarget;
     std::string m_status;
-    std::string m_targetBuffs;
+    std::string m_targetDebug;
 
     Clock::time_point m_lastAction{};
     Clock::time_point m_lastSettingsDraw{};
@@ -334,20 +332,36 @@ private:
         m_curTarget = *best;
         m_hasTarget = true;
         m_status = "aiming";
-        UpdateTargetBuffs(best->buffsAddr);
+        UpdateTargetDebug(*best);
     }
 
-    void UpdateTargetBuffs(uintptr_t buffsAddr) {
-        m_targetBuffs.clear();
-        if (!m_settings.debugShowTargetBuffs || !buffsAddr) return;
-        const std::vector<PluginSDK::Buff> buffs = ctx()->Components.EnumerateBuffs(buffsAddr);
-        for (const auto& b : buffs) {
-            if (b.Name.empty()) continue;
-            if (!m_targetBuffs.empty()) m_targetBuffs += ", ";
-            m_targetBuffs += b.Name;
-            if (m_targetBuffs.size() > 400) break;
+    void UpdateTargetDebug(const AutoMyAim::Target& t) {
+        m_targetDebug.clear();
+        if (!m_settings.debugShowTarget) return;
+        const char* rar = t.rarity == 3 ? "Unique" : t.rarity == 2 ? "Rare"
+                        : t.rarity == 1 ? "Magic" : "Normal";
+        char head[160];
+        if (t.targetableAddr) {
+            const PluginSDK::Targetable tg = ctx()->Components.ReadTargetable(t.targetableAddr);
+            std::snprintf(head, sizeof(head),
+                          "%s | targetable T=%d Hi=%d Tp=%d Hidden=%d V=%d",
+                          rar, tg.IsTargetable ? 1 : 0, tg.IsHighlightable ? 1 : 0,
+                          tg.IsTargetedByPlayer ? 1 : 0, tg.HiddenFromPlayer ? 1 : 0,
+                          tg.Valid ? 1 : 0);
+        } else {
+            std::snprintf(head, sizeof(head), "%s | targetable: (none)", rar);
         }
-        if (m_targetBuffs.empty()) m_targetBuffs = "(no buffs)";
+        m_targetDebug = head;
+        std::string names;
+        if (t.buffsAddr) {
+            for (const auto& b : ctx()->Components.EnumerateBuffs(t.buffsAddr)) {
+                if (b.Name.empty()) continue;
+                if (!names.empty()) names += ", ";
+                names += b.Name;
+                if (names.size() > 280) break;
+            }
+        }
+        m_targetDebug += " | buffs: " + (names.empty() ? std::string("(none)") : names);
     }
 
     void DrawRangeCircle(ImDrawList* dl) {

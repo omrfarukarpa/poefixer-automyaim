@@ -14,6 +14,7 @@ struct Target {
     int       rarity = 0;
     bool      onScreen = false;
     uintptr_t buffsAddr = 0;
+    uintptr_t targetableAddr = 0;
 };
 
 }

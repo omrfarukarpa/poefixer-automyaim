@@ -1,6 +1,6 @@
 # AutoMyAim
 
-**v1.0.3**
+**v1.0.4**
 
 A PoeFixer plugin for **Path of Exile 2** that moves your cursor onto the best nearby
 monster so your skills aim where they should. Hold a key (or toggle it on) and it scans
@@ -15,10 +15,6 @@ Unofficial third-party game tool. Maintainer: Ömer Faruk ARPA.
 
 - **Smart target pick** — weights nearby hostile monsters by distance, rarity (prefer
   Magic/Rare/Unique) and optionally HP (prefer low or high), and aims at the best one.
-- **Skips untargetable monsters** — ignores things you can't actually hit yet: invulnerable
-  Delirium phantoms that phase in to cast and vanish, monsters still imprisoned inside an
-  essence, and hidden/invulnerable boss phases. The cursor never sticks to them while real
-  enemies are on you. Toggleable.
 - **Line-of-sight** — skips monsters behind walls using the terrain grid (toggle + a
   tunable threshold).
 - **Aim key + toggle** — hold a key to aim, or toggle always-on. Bind any key or mouse
@@ -30,10 +26,11 @@ Unofficial third-party game tool. Maintainer: Ömer Faruk ARPA.
 - **Plays nice with PickMyLoot** — pauses aiming while PickMyLoot is picking up loot, so
   the two never fight over the cursor.
 - **Range circle** — optional ground ring at your aim range for easy calibration.
-- **Buff debug (for reporting)** — an optional overlay that prints the current target's
-  active buff names. If the cursor ever sticks to a monster that is *temporarily* immortal
-  (a buff makes it unkillable for a few seconds, e.g. some Delirium / Essence mobs), turn
-  this on, aim at it, and send the buff name so that case can be filtered too.
+- **Target diagnostics (for reporting)** — an optional overlay that prints the current
+  target's targetable flags and active buff names. If the cursor ever sticks to a monster
+  that can't be killed (an invulnerable Delirium / Essence mob, a buff that makes it immortal
+  for a few seconds), turn this on, aim at it, and send the readout so that exact case can be
+  filtered.
 
 ## Install
 
