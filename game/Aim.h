@@ -46,6 +46,11 @@ public:
             if (e.EntityType != PluginSDK::EntityType::Monster) return true;
             if (e.CurrentHP <= 0) return true;
             if (e.EntityState == PluginSDK::EntityState::MonsterFriendly) return true;
+            // Skip untargetable states: a hidden/invulnerable pinnacle boss is
+            // still a live Unique Monster and rarity weighting would pin the
+            // cursor to it while adds kill the player.
+            if (e.EntityState == PluginSDK::EntityState::PinnacleBossHidden) return true;
+            if (e.EntityState == PluginSDK::EntityState::Useless) return true;
             if (IsServerMod(e.Path)) return true;
 
             const float dx = e.GridPositionX - px;

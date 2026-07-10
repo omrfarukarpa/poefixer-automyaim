@@ -19,7 +19,7 @@
 
 #include <imgui.h>
 
-inline constexpr const char* kAutoMyAimVersion    = "1.0.1";
+inline constexpr const char* kAutoMyAimVersion    = "1.0.2";
 inline constexpr const char* kAutoMyAimMaintainer = "Omer Faruk ARPA";
 
 using AutoMyAimConfig::Settings;
@@ -46,6 +46,7 @@ public:
             ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
 
         m_settings.Load(DirectoryPath());
+        m_loaded = true;
         m_rng = static_cast<uint32_t>(::GetTickCount()) | 1u;
         m_rc.Refresh(ctx());
         m_areaCounter = ctx()->Game.GetAreaChangeCounter();
@@ -65,11 +66,14 @@ public:
         m_areaTok = {};
         m_hasTarget = false;
         m_active = false;
+        m_toggled = false;
         SaveSettings();
         ctx()->Log.Info("AutoMyAim plugin disabled");
     }
 
-    void SaveSettings() override { m_settings.Save(DirectoryPath()); }
+    void SaveSettings() override {
+        if (m_loaded) m_settings.Save(DirectoryPath());
+    }
 
     void DrawUI() override {
         if (!m_settings.enabled) return;
@@ -105,8 +109,9 @@ public:
     }
 
     void DrawSettings() override {
-        if (ctx()->ImGuiContext)
-            ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
+        if (!ctx()->ImGuiContext) return;  // incompatible host: our GImGui is null -> ImGui calls would deref null
+        ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
+        m_lastSettingsDraw = Clock::now();
 
         ImGui::TextDisabled("AutoMyAim v%s  -  by %s", kAutoMyAimVersion, kAutoMyAimMaintainer);
         ImGui::Checkbox("Enable AutoMyAim", &m_settings.enabled);
@@ -187,16 +192,19 @@ private:
     PluginSDK::EventsService::Token m_frameTok;
     PluginSDK::EventsService::Token m_areaTok;
 
+    bool  m_loaded = false;
     bool  m_active = false;
     bool  m_toggled = false;
     bool  m_togglePrev = false;
     int*  m_bindTarget = nullptr;
+    int   m_bindWaitRelease = 0;
 
     bool  m_hasTarget = false;
     AutoMyAim::Target m_curTarget;
     std::string m_status;
 
     Clock::time_point m_lastAction{};
+    Clock::time_point m_lastSettingsDraw{};
     uint64_t m_areaCounter = 0;
 
     bool  m_panelOpen = false;
@@ -227,6 +235,20 @@ private:
         if (!HostCompatible()) return;
         if (!m_settings.enabled) { m_active = false; return; }
 
+        // If a key-binder was armed and the settings window then closed,
+        // DrawSettings stops running and m_bindTarget would stay set forever
+        // (PollToggle dead, next reopened keypress silently captured). Cancel it.
+        if (m_bindTarget && MsSince(m_lastSettingsDraw) > 300) m_bindTarget = nullptr;
+
+        if (m_bindWaitRelease) {
+            if (AutoMyAimInput::IsKeyDown(m_bindWaitRelease)) {
+                m_togglePrev = true;
+                m_hasTarget = false;
+                return;
+            }
+            m_bindWaitRelease = 0;
+        }
+
         const bool foreground = ctx()->Game.IsForeground();
         PollToggle(foreground);
 
@@ -246,6 +268,15 @@ private:
         }
         if (m_settings.gatePanelOpen && PanelOpenCached()) {
             m_status = "panel open"; m_hasTarget = false; return;
+        }
+        if (ctx()->Game.IsMenuVisible()) {
+            m_status = "menu open"; m_hasTarget = false; return;
+        }
+        {
+            const PluginSDK::Entity pl = ctx()->Entities.GetPlayer();
+            if (pl.IsValid && pl.CurrentHP <= 0) {
+                m_status = "dead"; m_hasTarget = false; return;
+            }
         }
 
         const PluginSDK::ScreenSize disp = ctx()->Game.GetScreenSize();
@@ -315,8 +346,12 @@ private:
                 m_bindTarget = nullptr;
             } else {
                 for (int i = 4; i < 255; ++i) {
-                    if (i == VK_RBUTTON) continue;
-                    if ((GetAsyncKeyState(i) & 0x8000) != 0) { vk = i; m_bindTarget = nullptr; break; }
+                    if ((GetAsyncKeyState(i) & 0x8000) != 0) {
+                        vk = i;
+                        m_bindWaitRelease = i;
+                        m_bindTarget = nullptr;
+                        break;
+                    }
                 }
             }
         } else {
