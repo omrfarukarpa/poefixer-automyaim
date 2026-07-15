@@ -1,6 +1,6 @@
 # AutoMyAim
 
-**v1.0.4**
+**v1.0.5**
 
 A PoeFixer plugin for **Path of Exile 2** that moves your cursor onto the best nearby
 monster so your skills aim where they should. Hold a key (or toggle it on) and it scans
@@ -26,11 +26,15 @@ Unofficial third-party game tool. Maintainer: Ömer Faruk ARPA.
 - **Plays nice with PickMyLoot** — pauses aiming while PickMyLoot is picking up loot, so
   the two never fight over the cursor.
 - **Range circle** — optional ground ring at your aim range for easy calibration.
-- **Target diagnostics (for reporting)** — an optional overlay that prints the current
-  target's targetable flags and active buff names. If the cursor ever sticks to a monster
-  that can't be killed (an invulnerable Delirium / Essence mob, a buff that makes it immortal
-  for a few seconds), turn this on, aim at it, and send the readout so that exact case can be
-  filtered.
+- **Buff blacklist (untargetable monsters)** — optionally skip monsters carrying a
+  blacklisted buff, meant for enemies your skills can't actually hit (Delirium phantoms,
+  essence-frozen monsters). Off by default; ships prefilled with `hidden_monster,
+  frozen_in_time` and the list is editable, so you can adapt it to whatever the game
+  actually uses.
+- **Target diagnostics** — an optional overlay that prints the current target's
+  targetable flags and active buff names. If the cursor ever sticks to a monster that
+  can't be killed, turn this on, aim at it, and add the buff name you see to the
+  blacklist above.
 
 ## Install
 

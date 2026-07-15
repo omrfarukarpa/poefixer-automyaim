@@ -32,12 +32,15 @@ inline void ColorFromJson(const nlohmann::json& j, float dst[4]) {
 struct Settings {
     bool enabled = true;
 
-    int  aimKey = 0x05;    // Mouse4 (XBUTTON1), held to aim
-    int  toggleKey = 0x75; // F6, toggles always-on aiming
-    int  actionIntervalMs = 0; // 0 = every frame
+    int  aimKey = 0x05;
+    int  toggleKey = 0x75;
+    int  actionIntervalMs = 0;
 
-    int  aimRange = 100;   // grid units: scan + weight falloff
+    int  aimRange = 100;
     bool debugShowTarget = false;
+
+    bool skipBlacklistedBuffs = false;
+    std::string buffBlacklist = "hidden_monster, frozen_in_time";
 
     float distanceWeight = 1.0f;
     bool  rarityWeighting = true;
@@ -47,18 +50,18 @@ struct Settings {
     float hpWeight = 10.0f;
 
     bool useLineOfSight = true;
-    int  losBlockBelow = 1; // walkable cell value < this blocks sight (0 = walls)
+    int  losBlockBelow = 1;
 
     bool confineToCircle = false;
-    int  circleRadius = 400; // screen px around the player
+    int  circleRadius = 400;
     bool randomize = false;
     int  randomizeRadius = 8;
 
     bool gatePanelOpen = true;
-    bool pauseWhilePicking = true; // pause while PickMyLoot is picking
+    bool pauseWhilePicking = true;
 
-    bool showOverlay = true;      // status + target marker
-    bool showRangeCircle = false; // ground aim-range ring
+    bool showOverlay = true;
+    bool showRangeCircle = false;
 
     float targetColor[4] = {0.95f, 0.25f, 0.25f, 1.0f};
     float rangeColor[4]  = {0.30f, 0.60f, 1.00f, 1.0f};
@@ -83,6 +86,9 @@ struct Settings {
                                           kActionIntervalMinMs, kActionIntervalMaxMs);
             aimRange = std::clamp(j.value("aim_range", aimRange), kAimRangeMin, kAimRangeMax);
             debugShowTarget = j.value("debug_show_target", debugShowTarget);
+            skipBlacklistedBuffs = j.value("skip_blacklisted_buffs", skipBlacklistedBuffs);
+            buffBlacklist = j.value("buff_blacklist", buffBlacklist);
+            if (buffBlacklist.size() > 512) buffBlacklist.resize(512);
 
             distanceWeight = j.value("distance_weight", distanceWeight);
             rarityWeighting = j.value("rarity_weighting", rarityWeighting);
@@ -127,6 +133,8 @@ struct Settings {
             j["action_interval_ms"] = actionIntervalMs;
             j["aim_range"] = aimRange;
             j["debug_show_target"] = debugShowTarget;
+            j["skip_blacklisted_buffs"] = skipBlacklistedBuffs;
+            j["buff_blacklist"] = buffBlacklist;
             j["distance_weight"] = distanceWeight;
             j["rarity_weighting"] = rarityWeighting;
             j["w_normal"] = wNormal;

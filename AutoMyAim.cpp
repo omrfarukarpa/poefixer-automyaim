@@ -19,7 +19,7 @@
 
 #include <imgui.h>
 
-inline constexpr const char* kAutoMyAimVersion    = "1.0.4";
+inline constexpr const char* kAutoMyAimVersion    = "1.0.5";
 inline constexpr const char* kAutoMyAimMaintainer = "Omer Faruk ARPA";
 
 using AutoMyAimConfig::Settings;
@@ -118,7 +118,7 @@ public:
     }
 
     void DrawSettings() override {
-        if (!ctx()->ImGuiContext) return;  // incompatible host: our GImGui is null -> ImGui calls would deref null
+        if (!ctx()->ImGuiContext) return;
         ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
         m_lastSettingsDraw = Clock::now();
 
@@ -151,6 +151,22 @@ public:
             ImGui::SetNextItemWidth(120.f);
             ImGui::SliderInt("LoS block below", &m_settings.losBlockBelow, 0,
                              AutoMyAimConfig::kLosBlockBelowMax);
+        }
+        ImGui::Checkbox("Skip monsters with blacklisted buffs", &m_settings.skipBlacklistedBuffs);
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Skips monsters carrying any buff listed below (exact name, "
+                              "comma separated) - meant for untargetable ones like delirium "
+                              "phantoms or essence-frozen monsters. If one still gets aimed, "
+                              "turn on the Debug readout, aim at it, and add the buff name "
+                              "you see to this list.");
+        if (m_settings.skipBlacklistedBuffs) {
+            char buf[512];
+            std::snprintf(buf, sizeof(buf), "%s", m_settings.buffBlacklist.c_str());
+            ImGui::SetNextItemWidth(340.f);
+            if (ImGui::InputText("Buff blacklist", buf, sizeof(buf)))
+                m_settings.buffBlacklist = buf;
         }
 
         ImGui::SeparatorText("Weighting");
@@ -196,9 +212,8 @@ public:
         ImGui::Checkbox("Show target's targetable flags + buffs (diagnostics)",
                         &m_settings.debugShowTarget);
         if (m_settings.debugShowTarget) {
-            ImGui::TextWrapped("Aim at a normal monster, then at an invulnerable/undying one, "
-                               "and send me both readouts (the flags + buff names) so the right "
-                               "filter can be built.");
+            ImGui::TextWrapped("Aim at the problem monster and read its buff names here; add "
+                               "the distinctive one to the buff blacklist under Targeting.");
             ImGui::TextColored(ImVec4(0.55f, 0.85f, 0.55f, 1.f), "%s",
                                m_targetDebug.empty() ? "(no target)" : m_targetDebug.c_str());
         }
